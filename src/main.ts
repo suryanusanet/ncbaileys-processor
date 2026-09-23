@@ -26,14 +26,10 @@ function getEditedMessage(
   ) {
     return null
   }
+  // only text edits: the webhook receiver replaces the whole message content,
+  // so a caption-only edit would drop the original media
   const edited = protocolMessage.editedMessage ?? {}
-  const body =
-    edited.conversation ??
-    edited.extendedTextMessage?.text ??
-    edited.imageMessage?.caption ??
-    edited.videoMessage?.caption ??
-    edited.documentMessage?.caption ??
-    edited.documentWithCaptionMessage?.message?.documentMessage?.caption
+  const body = edited.conversation ?? edited.extendedTextMessage?.text
   if (!protocolMessage.key?.id || body === undefined) {
     return null
   }
@@ -124,8 +120,11 @@ async function consumeMessages() {
             if (editedMessage) {
               archiveMessage.type = 'edit'
               archiveMessage.edit = {
-                message_id: editedMessage.messageId,
-                text: { body: editedMessage.body },
+                original_message_id: editedMessage.messageId,
+                message: {
+                  type: 'text',
+                  text: { body: editedMessage.body },
+                },
               }
             } else if ('conversation' in waMessage.message) {
               archiveMessage.type = 'text'
@@ -325,8 +324,11 @@ async function consumeMessages() {
           if (editedMessage) {
             wabaMessage.entry[0].changes[0].value.messages[0].type = 'edit'
             wabaMessage.entry[0].changes[0].value.messages[0].edit = {
-              message_id: editedMessage.messageId,
-              text: { body: editedMessage.body },
+              original_message_id: editedMessage.messageId,
+              message: {
+                type: 'text',
+                text: { body: editedMessage.body },
+              },
             }
           } else if ('conversation' in waMessage.message) {
             wabaMessage.entry[0].changes[0].value.messages[0].type = 'text'
